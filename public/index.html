@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ledger — Expense Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">§</span>
+    <h1>Ledger</h1>
+  </div>
+  <div class="topbar-controls">
+    <div class="control-group">
+      <label for="currency-select">Currency</label>
+      <select id="currency-select">
+        <option value="USD">🇺🇸 USD — US Dollar</option>
+        <option value="EUR">🇪🇺 EUR — Euro</option>
+        <option value="GBP">🇬🇧 GBP — British Pound</option>
+        <option value="INR">🇮🇳 INR — Indian Rupee</option>
+        <option value="JPY">🇯🇵 JPY — Japanese Yen</option>
+        <option value="CAD">🇨🇦 CAD — Canadian Dollar</option>
+        <option value="AUD">🇦🇺 AUD — Australian Dollar</option>
+        <option value="CHF">🇨🇭 CHF — Swiss Franc</option>
+        <option value="CNY">🇨🇳 CNY — Chinese Yuan</option>
+        <option value="SGD">🇸🇬 SGD — Singapore Dollar</option>
+        <option value="AED">🇦🇪 AED — UAE Dirham</option>
+        <option value="SAR">🇸🇦 SAR — Saudi Riyal</option>
+        <option value="BRL">🇧🇷 BRL — Brazilian Real</option>
+        <option value="MXN">🇲🇽 MXN — Mexican Peso</option>
+        <option value="KRW">🇰🇷 KRW — South Korean Won</option>
+        <option value="RUB">🇷🇺 RUB — Russian Ruble</option>
+        <option value="ZAR">🇿🇦 ZAR — South African Rand</option>
+        <option value="SEK">🇸🇪 SEK — Swedish Krona</option>
+        <option value="NOK">🇳🇴 NOK — Norwegian Krone</option>
+        <option value="DKK">🇩🇰 DKK — Danish Krone</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="month-select">Month</label>
+      <input type="month" id="month-select">
+    </div>
+    <button class="btn-export" id="export-csv" title="Export to CSV">⬇ CSV</button>
+    <button class="btn-theme" id="theme-toggle" title="Toggle dark mode">🌙</button>
+  </div>
+</header>
+
+<!-- Toast notification -->
+<div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+<main class="layout">
+
+  <!-- LEFT PANEL -->
+  <section class="panel panel-form">
+    <h2>Add an Expense</h2>
+    <form id="expense-form">
+      <div class="field">
+        <label for="description">Description</label>
+        <input type="text" id="description" placeholder="Groceries, rent, coffee…" required autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="amount">Amount</label>
+          <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
+        </div>
+        <div class="field">
+          <label for="date">Date</label>
+          <input type="date" id="date" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <select id="category" required></select>
+      </div>
+      <div class="field">
+        <label for="notes">Notes (optional)</label>
+        <input type="text" id="notes" placeholder="Additional details…">
+      </div>
+      <button type="submit" class="btn-primary" id="submit-btn">Add Expense</button>
+      <p id="form-error" class="form-error" role="alert"></p>
+    </form>
+
+    <!-- Custom category -->
+    <div class="custom-cat-section">
+      <h2 class="budgets-heading">Categories</h2>
+      <p class="hint">Add a custom category.</p>
+      <div class="field-row">
+        <div class="field">
+          <input type="text" id="new-category" placeholder="Category name…">
+        </div>
+        <button class="btn-secondary" id="add-category-btn">Add</button>
+      </div>
+    </div>
+
+    <h2 class="budgets-heading">Monthly Budgets</h2>
+    <p class="hint">Set a limit per category. 0 = no limit.</p>
+    <div id="budget-list" class="budget-list"></div>
+  </section>
+
+  <!-- RIGHT PANEL -->
+  <section class="panel panel-data">
+    <!-- Summary cards -->
+    <div class="totals-row">
+      <div class="total-card">
+        <span class="total-label">Spent this month</span>
+        <span class="total-value" id="total-spent">—</span>
+      </div>
+      <div class="total-card">
+        <span class="total-label">Remaining budget</span>
+        <span class="total-value" id="total-remaining">—</span>
+      </div>
+      <div class="total-card">
+        <span class="total-label">Entries</span>
+        <span class="total-value" id="total-count">0</span>
+      </div>
+      <div class="total-card">
+        <span class="total-label">Daily average</span>
+        <span class="total-value" id="daily-avg">—</span>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-tabs">
+      <button class="chart-tab active" data-chart="doughnut">By Category</button>
+      <button class="chart-tab" data-chart="bar">Monthly Trend</button>
+    </div>
+    <div class="chart-wrap" id="chart-wrap">
+      <canvas id="category-chart"></canvas>
+      <canvas id="trend-chart" class="hidden"></canvas>
+      <p id="chart-empty" class="hint chart-empty">No expenses yet — add one to see the breakdown.</p>
+    </div>
+
+    <!-- Filters & search -->
+    <div class="list-header">
+      <h2>Expenses</h2>
+      <div class="list-controls">
+        <input type="text" id="search-input" placeholder="🔍 Search…" class="search-input">
+        <select id="filter-category">
+          <option value="All">All categories</option>
+        </select>
+        <select id="sort-select">
+          <option value="date-desc">Date ↓</option>
+          <option value="date-asc">Date ↑</option>
+          <option value="amount-desc">Amount ↓</option>
+          <option value="amount-asc">Amount ↑</option>
+        </select>
+      </div>
+    </div>
+
+    <table class="expense-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Notes</th>
+          <th class="align-right">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="expense-rows"></tbody>
+    </table>
+    <p id="list-empty" class="hint list-empty">Nothing here yet.</p>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+  </section>
+
+</main>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal-overlay" hidden>
+  <div class="modal">
+    <h2>Edit Expense</h2>
+    <form id="edit-form">
+      <input type="hidden" id="edit-id">
+      <div class="field">
+        <label for="edit-description">Description</label>
+        <input type="text" id="edit-description" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-amount">Amount</label>
+          <input type="number" id="edit-amount" step="0.01" min="0.01" required>
+        </div>
+        <div class="field">
+          <label for="edit-date">Date</label>
+          <input type="date" id="edit-date" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="edit-category">Category</label>
+        <select id="edit-category" required></select>
+      </div>
+      <div class="field">
+        <label for="edit-notes">Notes</label>
+        <input type="text" id="edit-notes">
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" id="cancel-edit">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
